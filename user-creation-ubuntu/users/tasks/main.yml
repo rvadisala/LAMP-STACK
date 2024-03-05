@@ -1,0 +1,57 @@
+---
+- name: Ensure user accounts are present.
+  user:
+    name: "{{ item.name | default(item) }}"
+    shell: /bin/bash
+    createhome: true
+    groups: "{{ item.groups | default(omit) }}"
+    home: "/home/{{ item.name | default(item) }}"
+    state: present
+    comment: "created using Ansible"
+  with_items: "{{ users }}"
+
+- name: Set password for users if provided
+  user:
+    name: "{{ item.name }}"
+    password: "{{ item.password | password_hash('sha512') }}"
+  with_items: "{{ users }}"
+  when: item.password is defined
+
+- name: Add SSH public key for users if the key exists
+  authorized_key:
+    user: "{{ item.name }}"
+    key: "{{ item.ssh_key }}"
+  loop: "{{ users }}"
+  when: item.ssh_key is defined
+
+  ######################## SUDO #############################
+  
+- name: Install sudo package
+  package:
+    name: sudo
+    state: present
+
+- name: Grant sudo privileges to specific users
+  lineinfile:
+    dest: /etc/sudoers
+    insertafter: EOF
+    line: "{{ item.name }} ALL=(ALL) NOPASSWD: ALL"
+    validate: 'visudo -cf %s'
+  with_items: "{{ users }}"
+  when: item.sudo == true
+
+  ######################## USER DELETION #############################
+
+- name: Ensure user accounts are absent.
+  user:
+    name: "{{ item.name | default(item) }}"
+    state: absent
+  with_items: "{{ users_absent }}"
+
+- name: Remove users from sudoers file
+  lineinfile:
+    dest: /etc/sudoers
+    state: absent
+    regexp: '^{{ item.name }}'
+  with_items: "{{ users }}"
+  when: item.sudo == false

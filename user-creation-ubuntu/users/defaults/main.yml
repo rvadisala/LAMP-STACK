@@ -1,0 +1,21 @@
+---
+users: 
+ - name: rvadisala
+   groups: www-data,sudo
+   sudo: yes
+   ssh_key: "{{ lookup('file', 'pub_keys/rvadisala.pub') }}"
+
+ - name: rkaka
+   groups: www-data
+   sudo: no
+   password: "password1"
+
+ - name: raja
+   sudo: yes
+
+ - name: ashok
+   sudo: yes
+   group: www-data  
+
+users_absent:
+ - name: radhika  

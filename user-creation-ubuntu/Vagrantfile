@@ -1,0 +1,49 @@
+# -*- mode: ruby -*- 
+# vi: set ft=ruby : 
+
+VAGRANTFILE_API_VERSION = "2" 
+
+Vagrant.configure(VAGRANTFILE_API_VERSION) do|config| 
+    config.ssh.insert_key = false 
+    config.vm.box = "ubuntu/focal64"
+    config.vm.provider :virtualbox do|vb| 
+        vb.customize ["modifyvm", :id, "--memory", "2048"] 
+    end 
+    config.vm.provision "shell", inline: <<-SHELL
+      sed -i 's/PasswordAuthentication no/PasswordAuthentication yes/g' /etc/ssh/sshd_config    
+      systemctl restart sshd.service
+    SHELL
+    config.vm.provision 'shell', inline: 'echo "vagrant:redhat" | chpasswd'
+    
+    #Ansible Server 
+    config.vm.define "web1" do|web| 
+        web.vm.hostname = "ansible-server" 
+        web.vm.network "private_network", ip: "192.168.3.15" 
+    end 
+    
+    #Application Server1 
+    config.vm.define "app1" do|app| 
+        app.vm.hostname = "app01" 
+        app.vm.network "private_network", ip: "192.168.3.11" 
+    end 
+    
+    #Application Server2 
+    config.vm.define "app2" do|app| 
+        app.vm.hostname = "app02" 
+        app.vm.network "private_network", ip: "192.168.3.12" 
+    end 
+    
+    #Database Server 
+    config.vm.define "db1" do|db| 
+        db.vm.hostname = "sqldb01" 
+        db.vm.network "private_network", ip: "192.168.3.13" 
+    end 
+    
+    config.vm.define "db2" do|db| 
+        db.vm.hostname = "sqldb02" 
+        db.vm.network "private_network", ip: "192.168.3.14" 
+    end 
+
+    config.vm.box_check_update = false 
+    config.vbguest.auto_update = false 
+end
